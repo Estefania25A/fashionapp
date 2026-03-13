@@ -1,283 +1,613 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Image,          // 👈 ESTA LÍNEA FALTABA
-} from 'react-native';
+View,
+Text,
+TextInput,
+TouchableOpacity,
+StyleSheet,
+Alert,
+Image,
+ScrollView
+} from "react-native";
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export default function App() {
-  // ---------- ESTADOS ----------
-  const [step, setStep] = useState(0);
-  const [isRegister, setIsRegister] = useState(false);
-  const [logged, setLogged] = useState(false);
 
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const [logged,setLogged]=useState(false);
+const [intro,setIntro]=useState(1);
+const [isRegister,setIsRegister]=useState(false);
+const [mostrarPerfil,setMostrarPerfil]=useState(false);
 
-  const API_URL = 'http://10.0.2.2:5000';
+const [nombre,setNombre]=useState("");
+const [email,setEmail]=useState("");
+const [password,setPassword]=useState("");
+const [confirmPassword,setConfirmPassword]=useState("");
 
-  // ---------- ZOD SCHEMA ----------
-  const registerSchema = z
-    .object({
-      nombre: z.string().min(1, 'El nombre es obligatorio'),
-      email: z.string().email('Correo no válido'),
-      password: z
-        .string()
-        .min(6, 'La contraseña debe tener al menos 6 caracteres'),
-      confirmPassword: z.string(),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: 'Las contraseñas no coinciden',
-      path: ['confirmPassword'],
-    });
+const [token,setToken]=useState("");
+const [carrito,setCarrito]=useState<any[]>([]);
 
-  // ---------- VALIDACIÓN ----------
-  const validateRegister = () => {
-    const result = registerSchema.safeParse({
-      nombre,
-      email,
-      password,
-      confirmPassword,
-    });
+const API_URL="http://10.0.2.2:5000";
 
-    if (!result.success) {
-      Alert.alert('Error', result.error.errors[0].message);
-      return false;
-    }
-    return true;
-  };
+const productos=[
+{
+id:1,
+nombre:"Blusa Elegante",
+precio:18,
+imagen:require("./assets/blusa-eleganre.webp")
+},
+{
+id:2,
+nombre:"Pantalón Mujer",
+precio:30,
+imagen:require("./assets/pantalon.jpg")
+},
+{
+id:3,
+nombre:"Vestido Floral",
+precio:25,
+imagen:require("./assets/vestido-floral.webp")
+}
+];
 
-  // ---------- LOGIN ----------
-  const login = async () => {
-  if (!email || !password) {
-    Alert.alert('Error', 'Ingrese email y contraseña');
-    return;
-  }
+const registerSchema=z.object({
+nombre:z.string().min(1,"Nombre obligatorio"),
+email:z.string().email("Correo no válido"),
+password:z.string().min(6,"Mínimo 6 caracteres"),
+confirmPassword:z.string()
+}).refine((data)=>data.password===data.confirmPassword,{
+message:"Las contraseñas no coinciden",
+path:["confirmPassword"]
+});
 
-  try {
-    const res = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+const validateRegister=()=>{
 
-    const data = await res.json();
+const result=registerSchema.safeParse({
+nombre,
+email,
+password,
+confirmPassword
+});
 
-    if (res.ok) {
-      setNombre(data.nombre);
-      setLogged(true);
-    } else {
-      Alert.alert(
-        'Error',
-        data.message || 'Correo o contraseña incorrectos'
-      );
-    }
-  } catch {
-    Alert.alert('Error', 'No se pudo conectar al servidor');
-  }
-};
-// ---------- REGISTRO ----------
-const register = async () => {
-  if (!validateRegister()) return;
-
-  try {
-    const res = await fetch(`${API_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre,
-        email,
-        password,
-        rol: 'cliente',
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      Alert.alert('Éxito', 'Usuario registrado correctamente');
-      setIsRegister(false);
-    } else {
-      Alert.alert(
-        'Error',
-        data.message || 'Este correo ya está registrado'
-      );
-    }
-  } catch {
-    Alert.alert('Error', 'No se pudo registrar');
-  }
-};
-
-  // ---------- RENDER ----------
-  return (
-    <View style={styles.container}>
-      {/* ---------- VISTA PROTEGIDA ---------- */}
-      {logged && (
-        <>
-          <Text style={styles.title}>Bienvenida {nombre} 💖</Text>
-          <Text style={styles.text}>Vista protegida activa</Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setLogged(false)}
-          >
-            <Text style={styles.buttonText}>Cerrar sesión</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      {/* ---------- ONBOARDING ---------- */}
-      {!logged && step < 3 && (
-        <>
-          <Image
-            source={require('./assets/divamujer.png')}
-            style={styles.logo}
-          />
-
-          <Text style={styles.title}>
-            {step === 0 && 'Bienvenida a Divina Mujer'}
-            {step === 1 && 'Moda pensada para ti'}
-            {step === 2 && 'Regístrate y empieza ahora'}
-          </Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setStep(step + 1)}
-          >
-            <Text style={styles.buttonText}>Siguiente</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setStep(3)}>
-            <Text style={styles.link}>Saltar</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      {/* ---------- LOGIN / REGISTRO ---------- */}
-      {!logged && step >= 3 && (
-        <>
-          <Image
-            source={require('./assets/divamujer.png')}
-            style={styles.logo}
-          />
-
-          <Text style={styles.title}>Divina Mujer</Text>
-
-          {isRegister && (
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre"
-              value={nombre}
-              onChangeText={setNombre}
-            />
-          )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          {isRegister && (
-            <TextInput
-              style={styles.input}
-              placeholder="Confirmar contraseña"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-          )}
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={isRegister ? register : login}
-          >
-            <Text style={styles.buttonText}>
-              {isRegister ? 'Registrar' : 'Ingresar'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setIsRegister(!isRegister)}>
-            <Text style={styles.link}>
-              {isRegister
-                ? '¿Ya tienes cuenta? Inicia sesión'
-                : '¿Eres nueva? Crea una cuenta'}
-            </Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
-  );
+if(!result.success){
+Alert.alert("Error",result.error.errors[0].message);
+return false;
 }
 
-// ---------- ESTILOS ----------
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 30,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  logo: {
-    width: 140,
-    height: 140,
-    alignSelf: 'center',
-    marginBottom: 20,
-    resizeMode: 'contain',
-  },
-  title: {
-  fontSize: 26,
-  fontWeight: '700',
-  textAlign: 'center',
-  marginBottom: 20,
-  letterSpacing: 1,
-},
-text: {
-  fontSize: 16,
-  textAlign: 'center',
-  marginBottom: 15,
-  fontWeight: '400',
+return true;
+
+};
+
+const login=async()=>{
+
+if(!email||!password){
+Alert.alert("Error","Ingrese email y contraseña");
+return;
+}
+
+try{
+
+const res=await fetch(`${API_URL}/login`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password})
+});
+
+const data=await res.json();
+
+if(res.ok){
+
+setToken(data.access_token);
+setNombre(data.user.nombre);
+setLogged(true);
+
+}else{
+
+Alert.alert("Error",data.message||"Credenciales incorrectas");
+
+}
+
+}catch{
+
+Alert.alert("Error","No se pudo conectar al servidor");
+
+}
+
+};
+
+const register=async()=>{
+
+if(!validateRegister())return;
+
+try{
+
+const res=await fetch(`${API_URL}/register`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+nombre,
+email,
+password,
+rol:"cliente"
+})
+});
+
+const data=await res.json();
+
+if(res.ok){
+
+Alert.alert("Éxito","Usuario registrado");
+setIsRegister(false);
+
+}else{
+
+Alert.alert("Error",data.message);
+
+}
+
+}catch{
+
+Alert.alert("Error","No se pudo registrar");
+
+}
+
+};
+
+const verPerfil=async()=>{
+
+try{
+
+const res=await fetch(`${API_URL}/perfil`,{
+method:"GET",
+headers:{
+Authorization:`Bearer ${token}`
+}
+});
+
+const data=await res.json();
+
+setNombre(data.nombre);
+setEmail(data.email);
+
+setMostrarPerfil(true);
+
+}catch{
+
+Alert.alert("Error","No se pudo obtener perfil");
+
+}
+
+};
+
+const agregarCarrito=(producto:any)=>{
+
+setCarrito([...carrito,producto]);
+Alert.alert("Carrito","Producto agregado 💖");
+
+};
+
+const cerrarSesion=()=>{
+
+setLogged(false);
+setEmail("");
+setPassword("");
+setToken("");
+setCarrito([]);
+
+};
+
+
+
+
+
+
+/* ================= INTRO 1 ================= */
+
+if(intro===1){
+return(
+
+<View style={styles.container}>
+
+<Image
+source={require("./assets/divamujer.png")}
+style={styles.logo}
+/>
+
+<Text style={styles.title}>Bienvenida 💖</Text>
+
+<Text style={{textAlign:"center",marginBottom:30}}>
+Descubre la moda de Divina Mujer
+</Text>
+
+<TouchableOpacity
+style={styles.button}
+onPress={()=>setIntro(2)}
+>
+<Text style={styles.buttonText}>Siguiente</Text>
+</TouchableOpacity>
+
+</View>
+
+);
+}
+
+
+
+/* ================= INTRO 2 ================= */
+
+if(intro===2){
+return(
+
+<View style={styles.container}>
+
+<Image
+source={require("./assets/divamujer.png")}
+style={styles.logo}
+/>
+
+<Text style={styles.title}>Moda femenina</Text>
+
+<Text style={{textAlign:"center",marginBottom:30}}>
+Vestidos, blusas y pantalones elegantes
+</Text>
+
+<TouchableOpacity
+style={styles.button}
+onPress={()=>setIntro(3)}
+>
+<Text style={styles.buttonText}>Siguiente</Text>
+</TouchableOpacity>
+
+</View>
+
+);
+}
+
+
+
+/* ================= INTRO 3 ================= */
+
+if(intro===3){
+return(
+
+<View style={styles.container}>
+
+<Image
+source={require("./assets/divamujer.png")}
+style={styles.logo}
+/>
+
+<Text style={styles.title}>Compra fácil</Text>
+
+<Text style={{textAlign:"center",marginBottom:30}}>
+Compra desde tu celular 💖
+</Text>
+
+<TouchableOpacity
+style={styles.button}
+onPress={()=>setIntro(4)}
+>
+<Text style={styles.buttonText}>Empezar</Text>
+</TouchableOpacity>
+
+</View>
+
+);
+}
+
+
+
+
+
+
+
+/* ================= APP NORMAL ================= */
+
+return(
+
+<View style={styles.container}>
+
+{mostrarPerfil ? (
+
+<View style={styles.profileContainer}>
+
+<Image
+source={{uri:"https://randomuser.me/api/portraits/women/44.jpg"}}
+style={styles.profileImage}
+/>
+
+<View style={styles.profileCard}>
+
+<Text style={styles.profileTitle}>
+Hola {nombre} 💖
+</Text>
+
+<Text style={styles.profileText}>
+📧 {email}
+</Text>
+
+<Text style={styles.profileText}>
+👤 Cliente
+</Text>
+
+<TouchableOpacity
+style={styles.profileButton}
+onPress={()=>setMostrarPerfil(false)}
+>
+<Text style={{color:"#fff",fontWeight:"bold"}}>
+Volver a la tienda
+</Text>
+</TouchableOpacity>
+
+</View>
+
+</View>
+
+) : logged ? (
+
+<ScrollView>
+
+<Text style={styles.title}>Hola {nombre} 💖</Text>
+<Text style={styles.subtitle}>Divina Mujer Boutique</Text>
+
+<View style={styles.productsContainer}>
+
+{productos.map((item)=>(
+<View key={item.id} style={styles.card}>
+
+<Image
+source={item.imagen}
+style={styles.productImage}
+/>
+
+<Text style={styles.productName}>{item.nombre}</Text>
+
+<Text style={styles.price}>${item.precio}</Text>
+
+<TouchableOpacity
+onPress={()=>agregarCarrito(item)}
+>
+<Text style={styles.cart}>🛒</Text>
+</TouchableOpacity>
+
+</View>
+))}
+
+</View>
+
+<Text style={styles.cartText}>
+🛍 Productos en carrito: {carrito.length}
+</Text>
+
+<TouchableOpacity
+style={styles.button}
+onPress={verPerfil}
+>
+<Text style={styles.buttonText}>👤 Ver perfil</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+style={styles.button}
+onPress={cerrarSesion}
+>
+<Text style={styles.buttonText}>🚪 Cerrar sesión</Text>
+</TouchableOpacity>
+
+</ScrollView>
+
+) : (
+
+<>
+
+<Image
+source={require("./assets/divamujer.png")}
+style={styles.logo}
+/>
+
+<Text style={styles.title}>Divina Mujer</Text>
+
+{isRegister&&(
+<TextInput
+style={styles.input}
+placeholder="Nombre"
+value={nombre}
+onChangeText={setNombre}
+/>
+)}
+
+<TextInput
+style={styles.input}
+placeholder="Email"
+value={email}
+onChangeText={setEmail}
+/>
+
+<TextInput
+style={styles.input}
+placeholder="Contraseña"
+secureTextEntry
+value={password}
+onChangeText={setPassword}
+/>
+
+{isRegister&&(
+<TextInput
+style={styles.input}
+placeholder="Confirmar contraseña"
+secureTextEntry
+value={confirmPassword}
+onChangeText={setConfirmPassword}
+/>
+)}
+
+<TouchableOpacity
+style={styles.button}
+onPress={isRegister?register:login}
+>
+<Text style={styles.buttonText}>
+{isRegister?"Registrar":"Ingresar"}
+</Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+onPress={()=>setIsRegister(!isRegister)}
+>
+<Text style={styles.link}>
+{isRegister?
+"¿Ya tienes cuenta? Inicia sesión":
+"¿Eres nueva? Crea una cuenta"}
+</Text>
+</TouchableOpacity>
+
+</>
+
+)}
+
+</View>
+
+);
+
+}
+
+const styles=StyleSheet.create({
+
+container:{
+flex:1,
+backgroundColor:"#fff",
+padding:20,
+justifyContent:"center"
 },
 
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    marginBottom: 12,
-    padding: 10,
-    borderRadius: 5,
-  },
-  button: {
-    backgroundColor: '#c2185b',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  link: {
-    color: '#c2185b',
-    marginTop: 15,
-    textAlign: 'center',
-  },
+title:{
+fontSize:26,
+fontWeight:"bold",
+textAlign:"center",
+marginBottom:10
+},
+
+subtitle:{
+textAlign:"center",
+color:"#ff4d88",
+marginBottom:20
+},
+
+logo:{
+width:120,
+height:120,
+alignSelf:"center",
+marginBottom:10
+},
+
+input:{
+borderWidth:1,
+borderColor:"#ddd",
+padding:10,
+marginVertical:8,
+borderRadius:8
+},
+
+button:{
+backgroundColor:"#ff2d6f",
+padding:15,
+borderRadius:10,
+marginTop:10
+},
+
+buttonText:{
+color:"#fff",
+textAlign:"center",
+fontWeight:"bold"
+},
+
+link:{
+textAlign:"center",
+marginTop:15,
+color:"#ff2d6f"
+},
+
+productsContainer:{
+flexDirection:"row",
+justifyContent:"space-between"
+},
+
+card:{
+backgroundColor:"#ffe6ef",
+padding:10,
+borderRadius:10,
+width:"30%",
+alignItems:"center"
+},
+
+productImage:{
+width:70,
+height:70,
+resizeMode:"contain"
+},
+
+productName:{
+marginTop:5,
+fontWeight:"bold",
+textAlign:"center"
+},
+
+price:{
+color:"#ff2d6f",
+fontWeight:"bold"
+},
+
+cart:{
+fontSize:22,
+marginTop:5
+},
+
+cartText:{
+textAlign:"center",
+marginVertical:15,
+fontWeight:"bold"
+},
+
+profileContainer:{
+flex:1,
+justifyContent:"center",
+alignItems:"center",
+backgroundColor:"#ffe6ef"
+},
+
+profileImage:{
+width:120,
+height:120,
+borderRadius:60,
+marginBottom:-60,
+zIndex:1
+},
+
+profileCard:{
+backgroundColor:"#fff",
+padding:25,
+borderRadius:20,
+width:"90%",
+alignItems:"center",
+elevation:5
+},
+
+profileTitle:{
+fontSize:22,
+fontWeight:"bold",
+marginTop:60
+},
+
+profileText:{
+fontSize:16,
+marginTop:10
+},
+
+profileButton:{
+backgroundColor:"#ff2d6f",
+padding:12,
+borderRadius:10,
+marginTop:20,
+width:"80%",
+alignItems:"center"
+}
+
 });
