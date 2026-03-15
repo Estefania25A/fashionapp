@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 View,
 Text,
@@ -10,9 +10,15 @@ Image,
 ScrollView
 } from "react-native";
 
+import { Camera, useCameraDevice } from "react-native-vision-camera";
 import { z } from "zod";
 
+import { getLocation } from "./src/hooks/useLocation";
+import { requestCameraPermission } from "./src/hooks/useCamera";
+
 export default function App() {
+
+/* ================= STATES ================= */
 
 const [logged,setLogged]=useState(false);
 const [intro,setIntro]=useState(1);
@@ -26,8 +32,22 @@ const [confirmPassword,setConfirmPassword]=useState("");
 
 const [token,setToken]=useState("");
 const [carrito,setCarrito]=useState<any[]>([]);
+const [location,setLocation]=useState<any>(null);
+const [mostrarCamara,setMostrarCamara]=useState(false);
+
+const device = useCameraDevice("back");
+
+/* ================= EFFECTS ================= */
+
+useEffect(()=>{
+requestCameraPermission();
+},[]);
+
+/* ================= API ================= */
 
 const API_URL="http://10.0.2.2:5000";
+
+/* ================= PRODUCTOS ================= */
 
 const productos=[
 {
@@ -49,6 +69,8 @@ precio:25,
 imagen:require("./assets/vestido-floral.webp")
 }
 ];
+
+/* ================= VALIDACION ================= */
 
 const registerSchema=z.object({
 nombre:z.string().min(1,"Nombre obligatorio"),
@@ -77,6 +99,8 @@ return false;
 return true;
 
 };
+
+/* ================= LOGIN ================= */
 
 const login=async()=>{
 
@@ -114,6 +138,8 @@ Alert.alert("Error","No se pudo conectar al servidor");
 }
 
 };
+
+/* ================= REGISTER ================= */
 
 const register=async()=>{
 
@@ -153,6 +179,8 @@ Alert.alert("Error","No se pudo registrar");
 
 };
 
+/* ================= PERFIL ================= */
+
 const verPerfil=async()=>{
 
 try{
@@ -168,7 +196,6 @@ const data=await res.json();
 
 setNombre(data.nombre);
 setEmail(data.email);
-
 setMostrarPerfil(true);
 
 }catch{
@@ -178,6 +205,8 @@ Alert.alert("Error","No se pudo obtener perfil");
 }
 
 };
+
+/* ================= CARRITO ================= */
 
 const agregarCarrito=(producto:any)=>{
 
@@ -196,10 +225,11 @@ setCarrito([]);
 
 };
 
+/* ================= GPS ================= */
 
-
-
-
+const obtenerUbicacion=()=>{
+getLocation(setLocation);
+};
 
 /* ================= INTRO 1 ================= */
 
@@ -231,8 +261,6 @@ onPress={()=>setIntro(2)}
 );
 }
 
-
-
 /* ================= INTRO 2 ================= */
 
 if(intro===2){
@@ -262,8 +290,6 @@ onPress={()=>setIntro(3)}
 
 );
 }
-
-
 
 /* ================= INTRO 3 ================= */
 
@@ -295,13 +321,7 @@ onPress={()=>setIntro(4)}
 );
 }
 
-
-
-
-
-
-
-/* ================= APP NORMAL ================= */
+/* ================= APP ================= */
 
 return(
 
@@ -393,12 +413,64 @@ onPress={cerrarSesion}
 <Text style={styles.buttonText}>🚪 Cerrar sesión</Text>
 </TouchableOpacity>
 
+<TouchableOpacity
+style={styles.button}
+onPress={obtenerUbicacion}
+>
+<Text style={styles.buttonText}>📍 Obtener ubicación</Text>
+</TouchableOpacity>
+
+{location && (
+<View style={{
+backgroundColor:"#fff",
+padding:15,
+borderRadius:10,
+marginTop:10,
+alignItems:"center",
+elevation:3
+}}>
+
+<Text style={{fontWeight:"bold",fontSize:16}}>
+📍 Ubicación actual
+</Text>
+
+<Text>
+Latitud: {location.coords.latitude.toFixed(6)}
+</Text>
+
+<Text>
+Longitud: {location.coords.longitude.toFixed(6)}
+</Text>
+
+</View>
+)}
+<TouchableOpacity
+style={styles.button}
+onPress={()=>setMostrarCamara(!mostrarCamara)}
+>
+<Text style={styles.buttonText}>
+{mostrarCamara ? "❌ Cerrar cámara" : "📷 Abrir cámara"}
+</Text>
+</TouchableOpacity>
+
+
+{mostrarCamara && (
+<View style={{height:250,marginTop:20,borderRadius:10,overflow:"hidden"}}>
+{device && (
+<Camera
+style={{flex:1}}
+device={device}
+isActive={true}
+/>
+)}
+</View>
+)}
+
 </ScrollView>
 
 ) : (
 
 <>
-
 <Image
 source={require("./assets/divamujer.png")}
 style={styles.logo}
@@ -471,143 +543,46 @@ onPress={()=>setIsRegister(!isRegister)}
 
 const styles=StyleSheet.create({
 
-container:{
-flex:1,
-backgroundColor:"#fff",
-padding:20,
-justifyContent:"center"
-},
+container:{flex:1,backgroundColor:"#fff",padding:20,justifyContent:"center"},
 
-title:{
-fontSize:26,
-fontWeight:"bold",
-textAlign:"center",
-marginBottom:10
-},
+title:{fontSize:26,fontWeight:"bold",textAlign:"center",marginBottom:10},
 
-subtitle:{
-textAlign:"center",
-color:"#ff4d88",
-marginBottom:20
-},
+subtitle:{textAlign:"center",color:"#ff4d88",marginBottom:20},
 
-logo:{
-width:120,
-height:120,
-alignSelf:"center",
-marginBottom:10
-},
+logo:{width:120,height:120,alignSelf:"center",marginBottom:10},
 
-input:{
-borderWidth:1,
-borderColor:"#ddd",
-padding:10,
-marginVertical:8,
-borderRadius:8
-},
+input:{borderWidth:1,borderColor:"#ddd",padding:10,marginVertical:8,borderRadius:8},
 
-button:{
-backgroundColor:"#ff2d6f",
-padding:15,
-borderRadius:10,
-marginTop:10
-},
+button:{backgroundColor:"#ff2d6f",padding:15,borderRadius:10,marginTop:10},
 
-buttonText:{
-color:"#fff",
-textAlign:"center",
-fontWeight:"bold"
-},
+buttonText:{color:"#fff",textAlign:"center",fontWeight:"bold"},
 
-link:{
-textAlign:"center",
-marginTop:15,
-color:"#ff2d6f"
-},
+link:{textAlign:"center",marginTop:15,color:"#ff2d6f"},
 
-productsContainer:{
-flexDirection:"row",
-justifyContent:"space-between"
-},
+productsContainer:{flexDirection:"row",justifyContent:"space-between"},
 
-card:{
-backgroundColor:"#ffe6ef",
-padding:10,
-borderRadius:10,
-width:"30%",
-alignItems:"center"
-},
+card:{backgroundColor:"#ffe6ef",padding:10,borderRadius:10,width:"30%",alignItems:"center"},
 
-productImage:{
-width:70,
-height:70,
-resizeMode:"contain"
-},
+productImage:{width:70,height:70,resizeMode:"contain"},
 
-productName:{
-marginTop:5,
-fontWeight:"bold",
-textAlign:"center"
-},
+productName:{marginTop:5,fontWeight:"bold",textAlign:"center"},
 
-price:{
-color:"#ff2d6f",
-fontWeight:"bold"
-},
+price:{color:"#ff2d6f",fontWeight:"bold"},
 
-cart:{
-fontSize:22,
-marginTop:5
-},
+cart:{fontSize:22,marginTop:5},
 
-cartText:{
-textAlign:"center",
-marginVertical:15,
-fontWeight:"bold"
-},
+cartText:{textAlign:"center",marginVertical:15,fontWeight:"bold"},
 
-profileContainer:{
-flex:1,
-justifyContent:"center",
-alignItems:"center",
-backgroundColor:"#ffe6ef"
-},
+profileContainer:{flex:1,justifyContent:"center",alignItems:"center",backgroundColor:"#ffe6ef"},
 
-profileImage:{
-width:120,
-height:120,
-borderRadius:60,
-marginBottom:-60,
-zIndex:1
-},
+profileImage:{width:120,height:120,borderRadius:60,marginBottom:-60,zIndex:1},
 
-profileCard:{
-backgroundColor:"#fff",
-padding:25,
-borderRadius:20,
-width:"90%",
-alignItems:"center",
-elevation:5
-},
+profileCard:{backgroundColor:"#fff",padding:25,borderRadius:20,width:"90%",alignItems:"center",elevation:5},
 
-profileTitle:{
-fontSize:22,
-fontWeight:"bold",
-marginTop:60
-},
+profileTitle:{fontSize:22,fontWeight:"bold",marginTop:60},
 
-profileText:{
-fontSize:16,
-marginTop:10
-},
+profileText:{fontSize:16,marginTop:10},
 
-profileButton:{
-backgroundColor:"#ff2d6f",
-padding:12,
-borderRadius:10,
-marginTop:20,
-width:"80%",
-alignItems:"center"
-}
+profileButton:{backgroundColor:"#ff2d6f",padding:12,borderRadius:10,marginTop:20,width:"80%",alignItems:"center"}
 
 });
