@@ -1,0 +1,29 @@
+name: React Native CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clonar repositorio
+      uses: actions/checkout@v3
+
+    - name: Instalar Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Instalar dependencias
+      run: npm install
+
+    - name: Permisos Gradle
+      run: chmod +x android/gradlew
+
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleDebug
